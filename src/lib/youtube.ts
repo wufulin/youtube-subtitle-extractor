@@ -1,5 +1,4 @@
-import { Innertube } from 'youtubei.js';
-import { ProxyAgent } from 'undici';
+import { Innertube } from 'youtubei.js/cf-worker';
 
 export interface Subtitle {
   start: string;
@@ -22,15 +21,6 @@ export function parseVideoId(url: string): string | null {
   return null;
 }
 
-const proxyUrl = process.env.HTTPS_PROXY || process.env.HTTP_PROXY;
-const dispatcher = proxyUrl ? new ProxyAgent(proxyUrl) : undefined;
-
-type FetchFn = typeof globalThis.fetch;
-
-const proxyFetch: FetchFn | undefined = dispatcher
-  ? (input, init) => fetch(input, { ...init, dispatcher } as RequestInit)
-  : undefined;
-
 let innertubeInstance: Innertube | null = null;
 
 async function getInnertube(): Promise<Innertube> {
@@ -39,7 +29,6 @@ async function getInnertube(): Promise<Innertube> {
       generate_session_locally: true,
       lang: 'en',
       location: 'US',
-      fetch: proxyFetch,
     });
   }
   return innertubeInstance;
@@ -93,8 +82,7 @@ export async function extractSubtitles(
 
   if (!track?.base_url) return [];
 
-  const fetchFn = proxyFetch ?? fetch;
-  const res = await fetchFn(track.base_url);
+  const res = await fetch(track.base_url);
 
   if (!res.ok) {
     throw new Error(`Failed to fetch captions: ${res.status}`);
