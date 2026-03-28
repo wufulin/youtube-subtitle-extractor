@@ -41,6 +41,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | ----------------- | ---------------------------------------------------------- |
 | `npm run dev`     | Next.js dev server                                         |
 | `npm run build`   | Production build (`next build --webpack`)                  |
+| `npm run build:cloudflare` | OpenNext output for Workers (`.open-next/`); use for CF CI |
 | `npm run start`   | Run the Node production server after `build`               |
 | `npm run lint`    | ESLint on `src/`                                           |
 | `npm run format`  | Prettier write                                             |
@@ -54,6 +55,8 @@ Production is intended to run on **Cloudflare Workers** using [**OpenNext**](htt
 
 1. Set `GEMINI_API_KEY` as a Wrangler secret (see above).
 2. Run `npm run deploy` (or `upload` / `preview` as needed).
+
+**Cloudflare Workers Builds / Git CI:** set the **build command** to `npm run build:cloudflare` (or `npx opennextjs-cloudflare build`). Do **not** use `npm run build` alone — that only runs `next build` and does not create `.open-next/`, so `npx wrangler deploy` will fail with “Could not find compiled Open Next config”. Keep the **deploy command** as `npx wrangler deploy` (or run `opennextjs-cloudflare deploy` via Wrangler as today).
 
 You can still host with **`npm run build`** + **`npm run start`** on any Node platform if you prefer.
 
