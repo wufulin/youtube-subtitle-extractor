@@ -12,11 +12,26 @@ interface StreamRendererProps {
 export function StreamRenderer({ html, loading, error }: StreamRendererProps) {
   const containerRef = useRef<HTMLElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const sanitizeGenRef = useRef(0);
 
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.innerHTML = html;
-    }
+    const el = containerRef.current;
+    if (!el) return;
+
+    const gen = ++sanitizeGenRef.current;
+    const snapshot = html;
+
+    import('dompurify')
+      .then(({ default: DOMPurify }) => {
+        if (gen !== sanitizeGenRef.current) return;
+        el.innerHTML = DOMPurify.sanitize(snapshot, {
+          USE_PROFILES: { html: true },
+        });
+      })
+      .catch(() => {
+        if (gen !== sanitizeGenRef.current) return;
+        el.textContent = snapshot;
+      });
   }, [html]);
 
   useEffect(() => {

@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YouTube Subtitle Translator
 
-## Getting Started
+Next.js app that reads **English YouTube captions** (via [`youtubei.js`](https://github.com/LuanRT/YouTube.js)), builds a prompt, and **streams** a Chinese HTML article from **Gemini** (`gemini-2.5-flash`). The UI lives under **`src/app/`** (App Router).
 
-First, run the development server:
+## Requirements
+
+- Node.js 20+ (recommended)
+- A **Google Gemini API key** ([Google AI Studio](https://aistudio.google.com/apikey))
+
+## Environment
+
+Copy the example file and add your key:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| Variable           | Required | Purpose                                      |
+| ------------------ | -------- | -------------------------------------------- |
+| `GEMINI_API_KEY`   | Yes      | Used by `src/app/api/translate/route.ts`     |
+| `HTTPS_PROXY` / `HTTP_PROXY` | No | Node dev only; see `src/instrumentation.ts` |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+For **Cloudflare Workers**, set the same secret for production (do not commit keys):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npx wrangler secret put GEMINI_API_KEY
+```
 
-## Learn More
+## Local development
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm install
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Scripts
 
-## Deploy on Vercel
+| Script            | Description                                                |
+| ----------------- | ---------------------------------------------------------- |
+| `npm run dev`     | Next.js dev server                                         |
+| `npm run build`   | Production build (`next build --webpack`)                  |
+| `npm run start`   | Run the Node production server after `build`               |
+| `npm run lint`    | ESLint on `src/`                                           |
+| `npm run format`  | Prettier write                                             |
+| `npm run preview` | OpenNext build + Cloudflare preview                        |
+| `npm run deploy`  | OpenNext build + `wrangler deploy`                         |
+| `npm run upload`  | OpenNext build + `wrangler upload`                         |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Deploy (Cloudflare Workers)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Production is intended to run on **Cloudflare Workers** using [**OpenNext**](https://opennext.js.org/cloudflare) and [`wrangler.jsonc`](wrangler.jsonc):
+
+1. Set `GEMINI_API_KEY` as a Wrangler secret (see above).
+2. Run `npm run deploy` (or `upload` / `preview` as needed).
+
+You can still host with **`npm run build`** + **`npm run start`** on any Node platform if you prefer.
+
+## Project layout
+
+- `src/app/page.tsx` — Home (hero + translator)
+- `src/app/api/translate/route.ts` — POST `{ "url": "<youtube-url>" }` → subtitle fetch → Gemini stream
+- `src/lib/youtube.ts` — Video ID + captions (`youtubei.js` `/cf-worker` entry)
+- `src/lib/prompt.ts`, `src/lib/gemini.ts` — Prompt + streaming Gemini client
+
+## Git commits
+
+- Prefer **[Conventional Commits](https://www.conventionalcommits.org/)** (`feat:`, `fix:`, `docs:`, `chore:`, …) so history stays scannable.
+- Do **not** append tool banners such as `Made-with: Cursor` (or similar) to commit messages.
+
+## Learn more
+
+- [Next.js docs](https://nextjs.org/docs) — this repo targets **Next.js 16**; check `node_modules/next/dist/docs/` for version-specific APIs when in doubt.
