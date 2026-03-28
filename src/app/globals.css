@@ -1,6 +1,6 @@
-@import "tailwindcss";
-@import "tw-animate-css";
-@import "shadcn/tailwind.css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -128,3 +128,58 @@
     @apply font-sans;
   }
 }
+
+/* ── Dialogue article styles ── */
+
+.article-container {
+  font-family: var(--font-serif-cn), 'Noto Serif SC', serif;
+  line-height: 1.9;
+  color: var(--color-foreground);
+}
+
+.article-summary {
+  border-left: 3px solid var(--color-primary);
+  padding: 1rem 1.5rem;
+  margin-bottom: 2.5rem;
+  color: var(--color-muted-foreground);
+  background: var(--color-muted);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  font-style: italic;
+  line-height: 1.9;
+}
+
+.dialogue-turn {
+  position: relative;
+  margin-bottom: 1.75rem;
+  padding-left: 1.25rem;
+  border-left: 2px solid transparent;
+  transition: border-color 0.3s ease;
+}
+
+.dialogue-turn:hover {
+  border-left-color: var(--color-primary);
+}
+
+.speaker-label {
+  font-weight: 700;
+  color: var(--color-primary);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: var(--font-sans), 'Inter', sans-serif;
+}
+
+.turn-time {
+  font-size: 0.7rem;
+  color: var(--color-muted-foreground);
+  margin-left: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-sans), 'Inter', sans-serif;
+}
+
+.turn-text {
+  margin-top: 0.35rem;
+  font-size: 1.05rem;
+  line-height: 2;
+}
+
