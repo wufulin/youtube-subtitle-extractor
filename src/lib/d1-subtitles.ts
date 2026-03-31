@@ -1,6 +1,6 @@
 import type { D1Database } from '@cloudflare/workers-types';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
-import type { Subtitle } from '@/lib/youtube';
+import type { Subtitle } from '@/lib/subtitle';
 
 export async function getD1Database(): Promise<D1Database | null> {
   try {

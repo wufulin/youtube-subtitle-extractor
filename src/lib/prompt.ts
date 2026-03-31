@@ -1,4 +1,4 @@
-import type { Subtitle } from './youtube';
+import type { Subtitle } from '@/lib/subtitle';
 
 function formatTimestamp(seconds: string): string {
   const total = parseFloat(seconds);

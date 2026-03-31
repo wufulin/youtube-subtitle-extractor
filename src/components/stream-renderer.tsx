@@ -25,6 +25,24 @@ function scrollContainerToBottom(root: HTMLDivElement | null, onAfter?: () => vo
   });
 }
 
+function applyScrollAfterSanitize(
+  scrollEl: HTMLDivElement | null,
+  scrollTranslationToTopRef: StreamRendererProps['scrollTranslationToTopRef'],
+  updateScrollTopState: () => void,
+) {
+  if (scrollTranslationToTopRef?.current) {
+    scrollTranslationToTopRef.current = false;
+    requestAnimationFrame(() => {
+      if (scrollEl) {
+        scrollEl.scrollTop = 0;
+        updateScrollTopState();
+      }
+    });
+    return;
+  }
+  scrollContainerToBottom(scrollEl, updateScrollTopState);
+}
+
 export function StreamRenderer({ html, loading, error, scrollTranslationToTopRef }: StreamRendererProps) {
   const containerRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -57,32 +75,12 @@ export function StreamRenderer({ html, loading, error, scrollTranslationToTopRef
           ADD_ATTR: ['open'],
         });
         el.querySelectorAll('.article-summary').forEach((node) => node.remove());
-        if (scrollTranslationToTopRef?.current) {
-          scrollTranslationToTopRef.current = false;
-          requestAnimationFrame(() => {
-            if (scrollRef.current) {
-              scrollRef.current.scrollTop = 0;
-              updateScrollTopState();
-            }
-          });
-        } else {
-          scrollContainerToBottom(scrollRef.current, updateScrollTopState);
-        }
+        applyScrollAfterSanitize(scrollRef.current, scrollTranslationToTopRef, updateScrollTopState);
       })
       .catch(() => {
         if (gen !== sanitizeGenRef.current) return;
         el.textContent = snapshot;
-        if (scrollTranslationToTopRef?.current) {
-          scrollTranslationToTopRef.current = false;
-          requestAnimationFrame(() => {
-            if (scrollRef.current) {
-              scrollRef.current.scrollTop = 0;
-              updateScrollTopState();
-            }
-          });
-        } else {
-          scrollContainerToBottom(scrollRef.current, updateScrollTopState);
-        }
+        applyScrollAfterSanitize(scrollRef.current, scrollTranslationToTopRef, updateScrollTopState);
       });
   }, [html, updateScrollTopState, scrollTranslationToTopRef]);
 

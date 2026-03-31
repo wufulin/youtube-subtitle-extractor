@@ -1,25 +1,5 @@
 import { Innertube } from 'youtubei.js/cf-worker';
-
-export interface Subtitle {
-  start: string;
-  dur: string;
-  text: string;
-}
-
-const VIDEO_ID_PATTERNS = [
-  /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-  /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-  /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-  /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-];
-
-export function parseVideoId(url: string): string | null {
-  for (const pattern of VIDEO_ID_PATTERNS) {
-    const match = url.match(pattern);
-    if (match) return match[1];
-  }
-  return null;
-}
+import type { Subtitle } from '@/lib/subtitle';
 
 let innertubeInstance: Innertube | null = null;
 

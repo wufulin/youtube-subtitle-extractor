@@ -6,7 +6,8 @@ import { TranslateForm } from '@/components/translate-form';
 import { StreamRenderer } from '@/components/stream-renderer';
 import { HistoryPanel } from '@/components/history-panel';
 import { Button } from '@/components/ui/button';
-import { parseVideoId } from '@/lib/youtube';
+import { parseVideoId } from '@/lib/youtube-id';
+import { consumeThrottledTextStream } from '@/lib/consume-throttled-stream';
 import { downloadBlob, htmlToPlainText, htmlToMarkdown } from '@/lib/export';
 import {
   clearDraft,
@@ -32,9 +33,6 @@ export function Translator() {
   const [paused, setPaused] = useState(false);
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  const bufferRef = useRef('');
-  const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastFlushAtRef = useRef(0);
   const pausedRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const userStoppedRef = useRef(false);
@@ -78,13 +76,7 @@ export function Translator() {
       setPaused(false);
       pausedRef.current = false;
       userStoppedRef.current = false;
-      bufferRef.current = '';
       contentRef.current = '';
-      if (flushTimeoutRef.current) {
-        clearTimeout(flushTimeoutRef.current);
-        flushTimeoutRef.current = null;
-      }
-      lastFlushAtRef.current = 0;
 
       abortRef.current?.abort();
       const ac = new AbortController();
@@ -120,41 +112,10 @@ export function Translator() {
           return;
         }
 
-        const reader = resp.body!.getReader();
-        const decoder = new TextDecoder();
-
-        for (;;) {
-          while (pausedRef.current) {
-            await new Promise((r) => setTimeout(r, 100));
-          }
-
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          bufferRef.current += decoder.decode(value, { stream: true });
-
-          if (!flushTimeoutRef.current) {
-            const now = Date.now();
-            const wait = Math.max(0, 800 - (now - lastFlushAtRef.current));
-            flushTimeoutRef.current = setTimeout(() => {
-              flushTimeoutRef.current = null;
-              const chunk = bufferRef.current;
-              bufferRef.current = '';
-              lastFlushAtRef.current = Date.now();
-              if (chunk) flushAppend(chunk);
-            }, wait);
-          }
-        }
-
-        if (flushTimeoutRef.current) {
-          clearTimeout(flushTimeoutRef.current);
-          flushTimeoutRef.current = null;
-        }
-        if (bufferRef.current) {
-          const remaining = bufferRef.current;
-          bufferRef.current = '';
-          flushAppend(remaining);
-        }
+        await consumeThrottledTextStream(resp.body!, {
+          isPaused: () => pausedRef.current,
+          append: flushAppend,
+        });
 
         const finalHtml = contentRef.current;
         if (!userStoppedRef.current && finalHtml.trim()) {
@@ -202,12 +163,6 @@ export function Translator() {
   const handleClearTranslation = () => {
     userStoppedRef.current = true;
     abortRef.current?.abort();
-    bufferRef.current = '';
-    if (flushTimeoutRef.current) {
-      clearTimeout(flushTimeoutRef.current);
-      flushTimeoutRef.current = null;
-    }
-    lastFlushAtRef.current = 0;
     setHtml('');
     contentRef.current = '';
     setError(null);

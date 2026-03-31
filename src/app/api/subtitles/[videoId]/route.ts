@@ -1,10 +1,5 @@
 import { getD1Database, getSubtitlesByVideoId, deleteSubtitlesByVideoId } from '@/lib/d1-subtitles';
-
-const VIDEO_ID_RE = /^[a-zA-Z0-9_-]{11}$/;
-
-function isValidVideoId(id: string): boolean {
-  return VIDEO_ID_RE.test(id);
-}
+import { isValidVideoId } from '@/lib/youtube-id';
 
 export async function GET(
   _request: Request,
