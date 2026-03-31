@@ -158,7 +158,7 @@ export function Translator() {
         abortRef.current = null;
       }
     },
-    [flushAppend],
+    [flushAppend]
   );
 
   const handlePause = () => {
@@ -209,91 +209,108 @@ export function Translator() {
         id="translator"
         className="border-border/60 bg-card/50 scroll-mt-24 rounded-2xl border p-4 shadow-sm backdrop-blur-sm sm:p-6 lg:p-8"
       >
-        <div className="mb-6 flex flex-col gap-2 sm:mb-8">
-          <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">翻译工具</h2>
-          <p className="text-muted-foreground text-sm">
-            粘贴链接后开始翻译。进行中可使用暂停 / 恢复；关闭页面前草稿会自动保存在本地。
-          </p>
-        </div>
+        <div className="grid gap-6 lg:grid-cols-[minmax(260px,320px)_minmax(0,1fr)] lg:items-start lg:gap-8">
+          {/* DOM first: tool — mobile on top; lg+ appears in column 2 (right) */}
+          <div className="order-1 flex min-w-0 flex-col lg:order-2">
+            <div className="mb-6 flex flex-col gap-2 sm:mb-8">
+              <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">
+                翻译工具
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                粘贴链接后开始翻译。进行中可使用暂停 / 恢复；关闭页面前草稿会自动保存在本地。
+              </p>
+            </div>
 
-        <TranslateForm
-          url={url}
-          onUrlChange={setUrl}
-          onSubmit={handleTranslate}
-          loading={loading}
-        />
+            <TranslateForm
+              url={url}
+              onUrlChange={setUrl}
+              onSubmit={handleTranslate}
+              loading={loading}
+            />
 
-        {(loading || html) && (
-          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border/50 pt-4 sm:mt-6 sm:gap-3 sm:pt-6">
-            {loading && (
-              <>
-                {paused ? (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={handleResume}
-                  >
-                    <Play className="size-4" />
-                    恢复
-                  </Button>
-                ) : (
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={handlePause}
-                  >
-                    <Pause className="size-4" />
-                    暂停
-                  </Button>
+            {(loading || html) && (
+              <div className="border-border/50 mt-4 flex flex-wrap items-center gap-2 border-t pt-4 sm:mt-6 sm:gap-3 sm:pt-6">
+                {loading && (
+                  <>
+                    {paused ? (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={handleResume}
+                      >
+                        <Play className="size-4" />
+                        恢复
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={handlePause}
+                      >
+                        <Pause className="size-4" />
+                        暂停
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive gap-1.5"
+                      onClick={handleStop}
+                    >
+                      <Square className="size-4" />
+                      停止
+                    </Button>
+                  </>
                 )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="text-destructive gap-1.5"
-                  onClick={handleStop}
-                >
-                  <Square className="size-4" />
-                  停止
-                </Button>
-              </>
+
+                {html ? (
+                  <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={handleExportTxt}
+                    >
+                      <FileText className="size-4" />
+                      导出 TXT
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={handleExportSrt}
+                    >
+                      <Download className="size-4" />
+                      导出 SRT
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
             )}
 
-            {html ? (
-              <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={handleExportTxt}
-                >
-                  <FileText className="size-4" />
-                  导出 TXT
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={handleExportSrt}
-                >
-                  <Download className="size-4" />
-                  导出 SRT
-                </Button>
-              </div>
-            ) : null}
+            <StreamRenderer html={html} loading={loading} error={error} />
           </div>
-        )}
 
-        <StreamRenderer html={html} loading={loading} error={error} />
+          {/* DOM second: history — mobile below tool; lg+ column 1 (left) */}
+          <aside
+            className="order-2 min-w-0 lg:sticky lg:top-24 lg:order-1 lg:self-start"
+            aria-label="翻译历史"
+          >
+            <HistoryPanel
+              entries={history}
+              onLoad={handleLoadHistory}
+              onRemove={handleRemoveHistory}
+            />
+          </aside>
+        </div>
       </section>
-
-      <HistoryPanel entries={history} onLoad={handleLoadHistory} onRemove={handleRemoveHistory} />
     </div>
   );
 }

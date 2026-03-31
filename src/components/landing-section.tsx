@@ -1,13 +1,10 @@
 'use client';
 
 import { ArrowRight, Cloud, Download, Play, Save, Zap } from 'lucide-react';
+import { useHomeTab } from '@/components/home-tab-context';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-
-function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
 
 function IconTile({ children }: { children: React.ReactNode }) {
   return (
@@ -21,14 +18,16 @@ function IconTile({ children }: { children: React.ReactNode }) {
 }
 
 export function LandingSection() {
+  const { goToTranslator } = useHomeTab();
+
   return (
-    <section id="top" className="relative overflow-hidden pb-12 pt-8 sm:pb-16 sm:pt-12 lg:pb-20">
+    <section id="top" className="relative overflow-hidden pt-8 pb-12 sm:pt-12 sm:pb-16 lg:pb-20">
       <div
-        className="pointer-events-none absolute -left-32 top-20 h-72 w-72 rounded-full blur-3xl sm:-left-40 sm:h-96 sm:w-96"
+        className="pointer-events-none absolute top-20 -left-32 h-72 w-72 rounded-full blur-3xl sm:-left-40 sm:h-96 sm:w-96"
         style={{ background: 'var(--gradient-hero-blob)' }}
       />
       <div
-        className="pointer-events-none absolute -right-32 top-0 h-72 w-72 rounded-full blur-3xl sm:-right-40 sm:h-96 sm:w-96"
+        className="pointer-events-none absolute top-0 -right-32 h-72 w-72 rounded-full blur-3xl sm:-right-40 sm:h-96 sm:w-96"
         style={{ background: 'var(--gradient-hero-blob-2)' }}
       />
 
@@ -56,7 +55,7 @@ export function LandingSection() {
             type="button"
             size="lg"
             className="btn-gradient h-11 gap-2 rounded-xl border-0 px-6 text-base shadow-md sm:h-12 sm:px-8"
-            onClick={() => scrollToId('translator')}
+            onClick={() => goToTranslator('translator')}
           >
             开始翻译
             <ArrowRight className="size-4" aria-hidden />
@@ -66,7 +65,7 @@ export function LandingSection() {
             variant="outline"
             size="lg"
             className="h-11 rounded-xl border-2 px-6 text-base sm:h-12 sm:px-8"
-            onClick={() => scrollToId('history')}
+            onClick={() => goToTranslator('history')}
           >
             查看历史
           </Button>
