@@ -222,6 +222,75 @@
   color: var(--color-foreground);
 }
 
+.article-theme {
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.02em;
+  margin: 0 0 1.25rem;
+  color: var(--color-foreground);
+}
+
+.article-section {
+  font-size: clamp(1.05rem, 1.8vw, 1.35rem);
+  font-weight: 700;
+  line-height: 1.4;
+  margin: 1.5rem 0 1rem;
+  color: var(--color-foreground);
+}
+
+.article-section:first-of-type {
+  margin-top: 0.25rem;
+}
+
+details.article-segment {
+  margin: 0 0 1.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid color-mix(in oklch, var(--color-border) 85%, transparent);
+  background: color-mix(in oklch, var(--color-muted) 35%, transparent);
+  overflow: hidden;
+}
+
+details.article-segment:last-child {
+  margin-bottom: 0;
+}
+
+.article-segment-title {
+  cursor: pointer;
+  font-family: var(--font-sans), 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.45;
+  padding: 0.65rem 0.85rem;
+  list-style: none;
+  color: var(--color-foreground);
+  user-select: none;
+}
+
+.article-segment-title::-webkit-details-marker {
+  display: none;
+}
+
+.article-segment-title::marker {
+  content: '';
+}
+
+details.article-segment[open] .article-segment-title {
+  border-bottom: 1px solid color-mix(in oklch, var(--color-border) 70%, transparent);
+}
+
+.article-segment-title:hover {
+  background: color-mix(in oklch, var(--color-muted) 55%, transparent);
+}
+
+.article-segment-body {
+  padding: 0.75rem 0.85rem 0.25rem;
+}
+
+.article-segment-body .dialogue-turn:first-child {
+  margin-top: 0;
+}
+
 .dialogue-turn {
   position: relative;
   margin-bottom: 1.75rem;
@@ -236,11 +305,21 @@
 
 .speaker-label {
   font-weight: 700;
-  color: var(--color-primary);
-  font-size: 0.8rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-family: var(--font-sans), 'Inter', sans-serif;
+  font-size: 0.95rem;
+  letter-spacing: normal;
+  text-transform: none;
+  font-family: var(--font-serif-cn), 'Noto Serif SC', serif;
+  color: var(--color-foreground);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 0.07em;
+  text-decoration-color: color-mix(in oklch, var(--color-foreground) 50%, transparent);
+}
+
+.speaker-label::after {
+  content: '：';
+  text-decoration: none;
+  font-weight: 700;
 }
 
 .turn-time {

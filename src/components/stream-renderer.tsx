@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { ArrowUpToLine, Eraser } from 'lucide-react';
+import { ArrowUpToLine } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 
@@ -9,7 +9,7 @@ interface StreamRendererProps {
   html: string;
   loading: boolean;
   error: string | null;
-  onClear: () => void;
+  scrollTranslationToTopRef?: React.RefObject<boolean | null>;
 }
 
 function scrollContainerToBottom(root: HTMLDivElement | null, onAfter?: () => void) {
@@ -25,7 +25,7 @@ function scrollContainerToBottom(root: HTMLDivElement | null, onAfter?: () => vo
   });
 }
 
-export function StreamRenderer({ html, loading, error, onClear }: StreamRendererProps) {
+export function StreamRenderer({ html, loading, error, scrollTranslationToTopRef }: StreamRendererProps) {
   const containerRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const sanitizeGenRef = useRef(0);
@@ -53,21 +53,44 @@ export function StreamRenderer({ html, loading, error, onClear }: StreamRenderer
         if (gen !== sanitizeGenRef.current) return;
         el.innerHTML = DOMPurify.sanitize(snapshot, {
           USE_PROFILES: { html: true },
+          ADD_TAGS: ['details', 'summary'],
+          ADD_ATTR: ['open'],
         });
         el.querySelectorAll('.article-summary').forEach((node) => node.remove());
-        scrollContainerToBottom(scrollRef.current, updateScrollTopState);
+        if (scrollTranslationToTopRef?.current) {
+          scrollTranslationToTopRef.current = false;
+          requestAnimationFrame(() => {
+            if (scrollRef.current) {
+              scrollRef.current.scrollTop = 0;
+              updateScrollTopState();
+            }
+          });
+        } else {
+          scrollContainerToBottom(scrollRef.current, updateScrollTopState);
+        }
       })
       .catch(() => {
         if (gen !== sanitizeGenRef.current) return;
         el.textContent = snapshot;
-        scrollContainerToBottom(scrollRef.current, updateScrollTopState);
+        if (scrollTranslationToTopRef?.current) {
+          scrollTranslationToTopRef.current = false;
+          requestAnimationFrame(() => {
+            if (scrollRef.current) {
+              scrollRef.current.scrollTop = 0;
+              updateScrollTopState();
+            }
+          });
+        } else {
+          scrollContainerToBottom(scrollRef.current, updateScrollTopState);
+        }
       });
-  }, [html, updateScrollTopState]);
+  }, [html, updateScrollTopState, scrollTranslationToTopRef]);
 
   useEffect(() => {
     if (loading) return;
+    if (scrollTranslationToTopRef?.current) return;
     scrollContainerToBottom(scrollRef.current, updateScrollTopState);
-  }, [loading, html, updateScrollTopState]);
+  }, [loading, html, updateScrollTopState, scrollTranslationToTopRef]);
 
   if (error) {
     return (
@@ -81,18 +104,6 @@ export function StreamRenderer({ html, loading, error, onClear }: StreamRenderer
 
   return (
     <div className="border-border/50 bg-card mt-2 w-full min-w-0 rounded-xl border px-3 py-2 shadow-sm sm:mt-3 sm:px-4 sm:py-3">
-      <div className="mb-1.5 flex flex-wrap items-center justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="text-destructive hover:bg-destructive/10 gap-1.5"
-          onClick={onClear}
-        >
-          <Eraser className="size-4" />
-          清空译文
-        </Button>
-      </div>
       <div className="relative">
         <div
           ref={scrollRef}

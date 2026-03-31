@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Download, Pause, Play, Square, FileText } from 'lucide-react';
+import { Pause, Play, Square, FileText, Eraser } from 'lucide-react';
 import { TranslateForm } from '@/components/translate-form';
 import { StreamRenderer } from '@/components/stream-renderer';
 import { HistoryPanel } from '@/components/history-panel';
 import { Button } from '@/components/ui/button';
 import { parseVideoId } from '@/lib/youtube';
-import { downloadBlob, htmlToPlainText, htmlToSrt } from '@/lib/export';
+import { downloadBlob, htmlToPlainText, htmlToMarkdown } from '@/lib/export';
 import {
   clearDraft,
   saveDraft,
@@ -39,6 +39,7 @@ export function Translator() {
   const abortRef = useRef<AbortController | null>(null);
   const userStoppedRef = useRef(false);
   const contentRef = useRef('');
+  const scrollTranslationToTopRef = useRef(false);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -214,21 +215,15 @@ export function Translator() {
     pausedRef.current = false;
   };
 
-  const handleExportTxt = () => {
-    const text = htmlToPlainText(html);
-    if (!text) return;
+  const handleExportMarkdown = () => {
+    const md = htmlToMarkdown(html);
+    if (!md) return;
     const id = parseVideoId(url) || 'export';
-    downloadBlob(`youtube-${id}.txt`, text + '\n', 'text/plain;charset=utf-8');
-  };
-
-  const handleExportSrt = () => {
-    const srt = htmlToSrt(html);
-    if (!srt) return;
-    const id = parseVideoId(url) || 'export';
-    downloadBlob(`youtube-${id}.srt`, srt, 'application/x-subrip;charset=utf-8');
+    downloadBlob(`youtube-${id}.md`, md + '\n', 'text/markdown;charset=utf-8');
   };
 
   const handleLoadHistory = (entry: HistoryEntry) => {
+    scrollTranslationToTopRef.current = true;
     setUrl(entry.url);
     setHtml(entry.html);
     contentRef.current = entry.html;
@@ -305,34 +300,39 @@ export function Translator() {
               </>
             )}
 
-            {html ? (
-              <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
+            <div className="flex w-full flex-wrap gap-2 sm:ml-auto sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10 gap-1.5"
+                onClick={handleClearTranslation}
+              >
+                <Eraser className="size-4" />
+                清空译文
+              </Button>
+              {html ? (
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="gap-1.5"
-                  onClick={handleExportTxt}
+                  onClick={handleExportMarkdown}
                 >
                   <FileText className="size-4" />
-                  导出 TXT
+                  导出 Markdown
                 </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={handleExportSrt}
-                >
-                  <Download className="size-4" />
-                  导出 SRT
-                </Button>
-              </div>
-            ) : null}
+              ) : null}
+            </div>
           </div>
         )}
 
-        <StreamRenderer html={html} loading={loading} error={error} onClear={handleClearTranslation} />
+        <StreamRenderer
+          html={html}
+          loading={loading}
+          error={error}
+          scrollTranslationToTopRef={scrollTranslationToTopRef}
+        />
       </section>
     </div>
   );

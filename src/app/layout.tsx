@@ -18,7 +18,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'YouTube 字幕翻译助手',
   description:
-    '将 YouTube 英文字幕流式翻译为中文对话文章，支持暂停与恢复、本地草稿、历史记录与 TXT/SRT 导出。',
+    '将 YouTube 英文字幕流式翻译为中文对话文章，支持暂停与恢复、本地草稿、历史记录与 Markdown 导出。',
 };
 
 export default function RootLayout({

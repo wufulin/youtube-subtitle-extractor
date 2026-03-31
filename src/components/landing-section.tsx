@@ -48,7 +48,7 @@ export function LandingSection() {
         <p className="text-muted-foreground mx-auto mt-4 max-w-2xl text-sm leading-relaxed sm:mt-5 sm:text-base lg:text-lg">
           基于 AI
           大模型，将英文字幕流式翻译为中文对话文章；支持实时预览、暂停与恢复、本地草稿与历史记录，并可一键导出
-          TXT / SRT。
+          Markdown。
         </p>
 
         <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:mt-10 sm:flex-row sm:items-center sm:gap-4">
@@ -133,9 +133,9 @@ export function LandingSection() {
                 <Download className="size-5" aria-hidden />
               </IconTile>
               <div>
-                <h3 className="text-foreground font-semibold">多格式导出</h3>
+                <h3 className="text-foreground font-semibold">Markdown 导出</h3>
                 <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                  支持 TXT 纯文本与 SRT 字幕文件一键下载。
+                  译文可一键下载为 .md 文件，便于笔记与二次编辑。
                 </p>
               </div>
             </div>

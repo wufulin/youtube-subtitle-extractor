@@ -26,7 +26,7 @@ export function HistoryPanel({ entries, onLoad, onRemove }: HistoryPanelProps) {
   return (
     <Card id="history" className="card-elevated border-border/60 scroll-mt-24">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-semibold sm:text-xl">翻译历史</CardTitle>
+        <CardTitle className="text-lg font-semibold sm:text-xl">历史记录</CardTitle>
         <p className="text-muted-foreground text-sm">
           记录保存在本机浏览器，清除站点数据会一并删除。
         </p>
