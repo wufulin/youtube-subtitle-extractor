@@ -4,6 +4,10 @@ export interface Subtitle {
   start: string;
   dur: string;
   text: string;
+  /** Milliseconds from json3 `tStartMs` or derived from XML seconds */
+  startMs: number;
+  /** Milliseconds from json3 `dDurationMs` or derived from XML seconds */
+  durMs: number;
 }
 
 const VIDEO_ID_PATTERNS = [
@@ -49,6 +53,18 @@ function decodeHtmlEntities(text: string): string {
     );
 }
 
+function subtitleFromSeconds(startSec: number, durSec: number, text: string): Subtitle {
+  const startMs = Math.round(startSec * 1000);
+  const durMs = Math.round(durSec * 1000);
+  return {
+    start: String(startSec),
+    dur: String(durSec),
+    text,
+    startMs,
+    durMs,
+  };
+}
+
 function parseCaptionXml(xml: string): Subtitle[] {
   const results: Subtitle[] = [];
   const regex =
@@ -58,11 +74,83 @@ function parseCaptionXml(xml: string): Subtitle[] {
   while ((m = regex.exec(xml)) !== null) {
     const text = decodeHtmlEntities(m[3].replace(/<[^>]+>/g, '').trim());
     if (text) {
-      results.push({ start: m[1], dur: m[2], text });
+      const startSec = parseFloat(m[1]);
+      const durSec = parseFloat(m[2]);
+      results.push(subtitleFromSeconds(startSec, durSec, text));
     }
   }
 
   return results;
+}
+
+interface Json3Seg {
+  utf8?: string;
+}
+
+interface Json3Event {
+  tStartMs?: number;
+  dDurationMs?: number;
+  segs?: Json3Seg[];
+}
+
+interface Json3Root {
+  events?: Json3Event[];
+}
+
+function parseCaptionJson3(json: string): Subtitle[] {
+  let root: Json3Root;
+  try {
+    root = JSON.parse(json) as Json3Root;
+  } catch {
+    return [];
+  }
+
+  const events = root.events;
+  if (!Array.isArray(events)) return [];
+
+  const results: Subtitle[] = [];
+
+  for (const ev of events) {
+    const segs = ev.segs;
+    if (!Array.isArray(segs) || segs.length === 0) continue;
+
+    const parts: string[] = [];
+    for (const s of segs) {
+      const u = s.utf8;
+      if (typeof u === 'string' && u.trim()) parts.push(u);
+    }
+
+    const text = decodeHtmlEntities(parts.join('').replace(/<[^>]+>/g, '').trim());
+    if (!text) continue;
+
+    const tStartMs = typeof ev.tStartMs === 'number' ? ev.tStartMs : 0;
+    const dDurationMs =
+      typeof ev.dDurationMs === 'number' && ev.dDurationMs > 0 ? ev.dDurationMs : 1000;
+
+    const startSec = tStartMs / 1000;
+    const durSec = dDurationMs / 1000;
+
+    results.push({
+      start: String(startSec),
+      dur: String(durSec),
+      text,
+      startMs: tStartMs,
+      durMs: dDurationMs,
+    });
+  }
+
+  return results;
+}
+
+function captionUrlWithFmt(baseUrl: string, fmt: string): string {
+  try {
+    const u = new URL(baseUrl);
+    u.searchParams.set('fmt', fmt);
+    return u.toString();
+  } catch {
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    return `${baseUrl}${sep}fmt=${encodeURIComponent(fmt)}`;
+  }
 }
 
 export interface ExtractSubtitlesResult {
@@ -91,8 +179,21 @@ export async function extractSubtitles(
 
   if (!track?.base_url) return { subtitles: [], title };
 
-  const res = await fetch(track.base_url);
+  const jsonUrl = captionUrlWithFmt(track.base_url, 'json3');
+  let res = await fetch(jsonUrl);
 
+  if (res.ok) {
+    const text = await res.text();
+    const trimmed = text.trim();
+    if (trimmed.startsWith('{')) {
+      const parsed = parseCaptionJson3(text);
+      if (parsed.length > 0) {
+        return { subtitles: parsed, title };
+      }
+    }
+  }
+
+  res = await fetch(track.base_url);
   if (!res.ok) {
     throw new Error(`Failed to fetch captions: ${res.status}`);
   }

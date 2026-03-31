@@ -28,3 +28,26 @@ Rules:
 Subtitles:
 ${transcript}`;
 }
+
+/** One [globalIndex] line per subtitle row; model must echo the same index prefix. */
+export function buildBatchPrompt(batch: Subtitle[], startIndex: number): string {
+  const lines = batch
+    .map((s, i) => `[${startIndex + i}] ${s.text}`)
+    .join('\n');
+
+  const first = startIndex;
+  const second = startIndex + 1;
+
+  return `You are a professional translator. Translate each English YouTube subtitle line into natural Chinese.
+
+Rules:
+1. Output exactly one line per input line.
+2. Each output line MUST start with the same [index] prefix as the corresponding INPUT line — the number in brackets must match exactly (use the same global indices as the Input, not 0,1,2…). Example: [${first}] … and [${second}] … if those appear in the Input.
+3. Do not renumber from zero; do not use batch-local numbering. The bracket number before each translation must equal the bracket number on the same row in Input.
+4. Do not use markdown, code fences, bullet points, or lines like "Translation:". Output ONLY the indexed lines — no preamble or epilogue.
+5. Do not merge, reorder, skip, or add lines. Do not copy English without translating.
+6. Keep each translation on a single line (no line breaks inside one translation).
+
+Input:
+${lines}`;
+}

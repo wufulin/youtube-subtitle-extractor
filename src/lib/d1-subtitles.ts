@@ -2,6 +2,17 @@ import type { D1Database } from '@cloudflare/workers-types';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { Subtitle } from '@/lib/youtube';
 
+function normalizeCue(raw: unknown): Subtitle {
+  const o = raw as Record<string, unknown>;
+  const start = String(o.start ?? '0');
+  const dur = String(o.dur ?? '0');
+  const text = String(o.text ?? '');
+  const startMs =
+    typeof o.startMs === 'number' ? o.startMs : Math.round(parseFloat(start) * 1000);
+  const durMs = typeof o.durMs === 'number' ? o.durMs : Math.round(parseFloat(dur) * 1000);
+  return { start, dur, text, startMs, durMs };
+}
+
 export async function getD1Database(): Promise<D1Database | null> {
   try {
     const { env } = await getCloudflareContext({ async: true });
@@ -102,7 +113,9 @@ export async function getSubtitlesByVideoId(
 
   let cues: Subtitle[];
   try {
-    cues = JSON.parse(row.cues_json) as Subtitle[];
+    const parsed = JSON.parse(row.cues_json) as unknown[];
+    if (!Array.isArray(parsed)) return null;
+    cues = parsed.map(normalizeCue);
   } catch {
     return null;
   }

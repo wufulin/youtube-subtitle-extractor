@@ -1,7 +1,6 @@
 import { parseVideoId, extractSubtitles } from '@/lib/youtube';
-import { buildPrompt } from '@/lib/prompt';
-import { streamTranslate } from '@/lib/gemini';
 import { getD1Database, upsertSubtitles } from '@/lib/d1-subtitles';
+import { createSubtitleTranslateSseStream } from '@/lib/subtitle-translate-pipeline';
 
 export async function POST(request: Request) {
   try {
@@ -38,12 +37,19 @@ export async function POST(request: Request) {
       console.error('[/api/translate] D1 upsert', d1Err);
     }
 
-    const prompt = buildPrompt(subtitles);
-    const stream = await streamTranslate(prompt, process.env.GEMINI_API_KEY!);
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return Response.json(
+        { error: 'Server misconfiguration: missing GEMINI_API_KEY' },
+        { status: 500 },
+      );
+    }
+
+    const stream = createSubtitleTranslateSseStream(subtitles, apiKey);
 
     return new Response(stream, {
       headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Type': 'text/event-stream; charset=utf-8',
         'Cache-Control': 'no-cache, no-store',
         'X-Content-Type-Options': 'nosniff',
       },
