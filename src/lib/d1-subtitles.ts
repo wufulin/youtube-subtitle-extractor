@@ -18,6 +18,7 @@ export async function upsertSubtitles(
     title: string | undefined;
     lang: string;
     cues: Subtitle[];
+    articleHtml: string;
   },
 ): Promise<void> {
   const now = Date.now();
@@ -26,14 +27,15 @@ export async function upsertSubtitles(
 
   await db
     .prepare(
-      `INSERT INTO subtitles (video_id, title, lang, cues_json, cue_count, fetched_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO subtitles (video_id, title, lang, cues_json, cue_count, fetched_at, updated_at, article_html)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(video_id) DO UPDATE SET
          title = excluded.title,
          lang = excluded.lang,
          cues_json = excluded.cues_json,
          cue_count = excluded.cue_count,
-         updated_at = excluded.updated_at`,
+         updated_at = excluded.updated_at,
+         article_html = excluded.article_html`,
     )
     .bind(
       params.videoId,
@@ -43,6 +45,7 @@ export async function upsertSubtitles(
       cueCount,
       now,
       now,
+      params.articleHtml,
     )
     .run();
 }
@@ -79,7 +82,23 @@ export type StoredSubtitles = {
   lang: string;
   cues: Subtitle[];
   updated_at: number;
+  article_html: string | null;
 };
+
+/** Non-empty `article_html` only; for translate cache short-circuit. */
+export async function getCachedArticleHtml(
+  db: D1Database,
+  videoId: string,
+): Promise<string | null> {
+  const row = await db
+    .prepare(
+      `SELECT article_html FROM subtitles
+       WHERE video_id = ? AND article_html IS NOT NULL AND trim(article_html) != ''`,
+    )
+    .bind(videoId)
+    .first<{ article_html: string }>();
+  return row?.article_html ?? null;
+}
 
 export async function getSubtitlesByVideoId(
   db: D1Database,
@@ -87,7 +106,7 @@ export async function getSubtitlesByVideoId(
 ): Promise<StoredSubtitles | null> {
   const row = await db
     .prepare(
-      `SELECT video_id, title, lang, cues_json, updated_at FROM subtitles WHERE video_id = ?`,
+      `SELECT video_id, title, lang, cues_json, updated_at, article_html FROM subtitles WHERE video_id = ?`,
     )
     .bind(videoId)
     .first<{
@@ -96,6 +115,7 @@ export async function getSubtitlesByVideoId(
       lang: string;
       cues_json: string;
       updated_at: number;
+      article_html: string | null;
     }>();
 
   if (!row) return null;
@@ -113,6 +133,7 @@ export async function getSubtitlesByVideoId(
     lang: row.lang,
     cues,
     updated_at: row.updated_at,
+    article_html: row.article_html,
   };
 }
 

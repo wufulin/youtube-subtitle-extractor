@@ -1,7 +1,67 @@
-import { parseVideoId, extractSubtitles } from '@/lib/youtube';
+import { parseVideoId, extractSubtitles, type Subtitle } from '@/lib/youtube';
 import { buildPrompt } from '@/lib/prompt';
 import { streamTranslate } from '@/lib/gemini';
-import { getD1Database, upsertSubtitles } from '@/lib/d1-subtitles';
+import { getD1Database, getCachedArticleHtml, upsertSubtitles } from '@/lib/d1-subtitles';
+
+function wrapTranslationStreamWithD1(
+  source: ReadableStream<Uint8Array>,
+  opts: {
+    signal: AbortSignal;
+    videoId: string;
+    title: string | undefined;
+    subtitles: Subtitle[];
+  },
+): ReadableStream<Uint8Array> {
+  const decoder = new TextDecoder();
+  let accumulated = '';
+  let reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
+
+  return new ReadableStream({
+    async start(controller) {
+      reader = source.getReader();
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+          controller.enqueue(value);
+        }
+        accumulated += decoder.decode();
+
+        if (!opts.signal.aborted && accumulated.trim()) {
+          try {
+            const persistDb = await getD1Database();
+            if (persistDb) {
+              await upsertSubtitles(persistDb, {
+                videoId: opts.videoId,
+                title: opts.title,
+                lang: 'en',
+                cues: opts.subtitles,
+                articleHtml: accumulated,
+              });
+            }
+          } catch (d1Err) {
+            console.error('[/api/translate] D1 upsert', d1Err);
+          }
+        }
+
+        controller.close();
+      } catch (e) {
+        controller.error(e);
+      } finally {
+        try {
+          reader.releaseLock();
+        } catch {
+          /* already released */
+        }
+        reader = null;
+      }
+    },
+    cancel(reason) {
+      void reader?.cancel(reason);
+    },
+  });
+}
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +76,21 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Invalid YouTube URL' }, { status: 400 });
     }
 
+    const db = await getD1Database();
+    if (db) {
+      const cached = await getCachedArticleHtml(db, videoId);
+      if (cached) {
+        return new Response(cached, {
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Cache-Control': 'no-cache, no-store',
+            'X-Content-Type-Options': 'nosniff',
+            'X-Cached-Translation': '1',
+          },
+        });
+      }
+    }
+
     const { subtitles, title } = await extractSubtitles(videoId);
     if (!subtitles.length) {
       return Response.json(
@@ -24,22 +99,15 @@ export async function POST(request: Request) {
       );
     }
 
-    try {
-      const db = await getD1Database();
-      if (db) {
-        await upsertSubtitles(db, {
-          videoId,
-          title,
-          lang: 'en',
-          cues: subtitles,
-        });
-      }
-    } catch (d1Err) {
-      console.error('[/api/translate] D1 upsert', d1Err);
-    }
-
     const prompt = buildPrompt(subtitles);
-    const stream = await streamTranslate(prompt, process.env.GEMINI_API_KEY!);
+    const geminiStream = await streamTranslate(prompt, process.env.GEMINI_API_KEY!);
+
+    const stream = wrapTranslationStreamWithD1(geminiStream, {
+      signal: request.signal,
+      videoId,
+      title,
+      subtitles,
+    });
 
     return new Response(stream, {
       headers: {

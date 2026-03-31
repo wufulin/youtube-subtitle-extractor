@@ -102,6 +102,23 @@ export function Translator() {
           throw new Error(data.error || '翻译失败');
         }
 
+        if (resp.headers.get('X-Cached-Translation') === '1') {
+          const finalHtml = await resp.text();
+          setHtml(finalHtml);
+          contentRef.current = finalHtml;
+          if (!userStoppedRef.current && finalHtml.trim()) {
+            const vid = parseVideoId(videoUrl);
+            addHistoryEntry({
+              url: videoUrl,
+              html: finalHtml,
+              title: titleFromHtml(finalHtml, videoUrl),
+              videoId: vid,
+            });
+            setHistory(loadHistory());
+          }
+          return;
+        }
+
         const reader = resp.body!.getReader();
         const decoder = new TextDecoder();
 
