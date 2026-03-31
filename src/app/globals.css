@@ -222,17 +222,6 @@
   color: var(--color-foreground);
 }
 
-.article-summary {
-  border-left: 3px solid var(--color-primary);
-  padding: 1rem 1.5rem;
-  margin-bottom: 2.5rem;
-  color: var(--color-muted-foreground);
-  background: var(--color-muted);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  font-style: italic;
-  line-height: 1.9;
-}
-
 .dialogue-turn {
   position: relative;
   margin-bottom: 1.75rem;

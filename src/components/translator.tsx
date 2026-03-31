@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { parseVideoId } from '@/lib/youtube';
 import { downloadBlob, htmlToPlainText, htmlToSrt } from '@/lib/export';
 import {
-  loadDraft,
+  clearDraft,
   saveDraft,
   addHistoryEntry,
   loadHistory,
@@ -33,7 +33,8 @@ export function Translator() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
   const bufferRef = useRef('');
-  const rafRef = useRef(0);
+  const flushTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFlushAtRef = useRef(0);
   const pausedRef = useRef(false);
   const abortRef = useRef<AbortController | null>(null);
   const userStoppedRef = useRef(false);
@@ -48,11 +49,7 @@ export function Translator() {
   }, []);
 
   useEffect(() => {
-    const d = loadDraft();
-    if (!d) return;
-    setUrl(d.url);
-    setHtml(d.html);
-    contentRef.current = d.html;
+    clearDraft();
   }, []);
 
   useEffect(() => {
@@ -82,6 +79,11 @@ export function Translator() {
       userStoppedRef.current = false;
       bufferRef.current = '';
       contentRef.current = '';
+      if (flushTimeoutRef.current) {
+        clearTimeout(flushTimeoutRef.current);
+        flushTimeoutRef.current = null;
+      }
+      lastFlushAtRef.current = 0;
 
       abortRef.current?.abort();
       const ac = new AbortController();
@@ -113,19 +115,22 @@ export function Translator() {
 
           bufferRef.current += decoder.decode(value, { stream: true });
 
-          if (!rafRef.current) {
-            rafRef.current = requestAnimationFrame(() => {
+          if (!flushTimeoutRef.current) {
+            const now = Date.now();
+            const wait = Math.max(0, 800 - (now - lastFlushAtRef.current));
+            flushTimeoutRef.current = setTimeout(() => {
+              flushTimeoutRef.current = null;
               const chunk = bufferRef.current;
               bufferRef.current = '';
-              rafRef.current = 0;
-              flushAppend(chunk);
-            });
+              lastFlushAtRef.current = Date.now();
+              if (chunk) flushAppend(chunk);
+            }, wait);
           }
         }
 
-        if (rafRef.current) {
-          cancelAnimationFrame(rafRef.current);
-          rafRef.current = 0;
+        if (flushTimeoutRef.current) {
+          clearTimeout(flushTimeoutRef.current);
+          flushTimeoutRef.current = null;
         }
         if (bufferRef.current) {
           const remaining = bufferRef.current;
@@ -176,6 +181,22 @@ export function Translator() {
     abortRef.current?.abort();
   };
 
+  const handleClearTranslation = () => {
+    userStoppedRef.current = true;
+    abortRef.current?.abort();
+    bufferRef.current = '';
+    if (flushTimeoutRef.current) {
+      clearTimeout(flushTimeoutRef.current);
+      flushTimeoutRef.current = null;
+    }
+    lastFlushAtRef.current = 0;
+    setHtml('');
+    contentRef.current = '';
+    setError(null);
+    setPaused(false);
+    pausedRef.current = false;
+  };
+
   const handleExportTxt = () => {
     const text = htmlToPlainText(html);
     if (!text) return;
@@ -204,13 +225,17 @@ export function Translator() {
   };
 
   return (
-    <div className="space-y-8 sm:space-y-10">
+    <div className="grid gap-8 sm:gap-10 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)] lg:items-start">
+      <aside className="order-2 min-w-0 lg:sticky lg:top-24 lg:order-1 lg:self-start">
+        <HistoryPanel entries={history} onLoad={handleLoadHistory} onRemove={handleRemoveHistory} />
+      </aside>
+
       <section
         id="translator"
-        className="border-border/60 bg-card/50 scroll-mt-24 rounded-2xl border p-4 shadow-sm backdrop-blur-sm sm:p-6 lg:p-8"
+        className="border-border/60 bg-card/50 order-1 min-w-0 scroll-mt-24 rounded-2xl border p-4 shadow-sm backdrop-blur-sm sm:p-6 lg:order-2 lg:p-8"
       >
         <div className="mb-6 flex flex-col gap-2 sm:mb-8">
-          <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">翻译工具</h2>
+          <h2 className="text-foreground text-xl font-bold tracking-tight sm:text-2xl">翻译</h2>
           <p className="text-muted-foreground text-sm">
             粘贴链接后开始翻译。进行中可使用暂停 / 恢复；关闭页面前草稿会自动保存在本地。
           </p>
@@ -290,10 +315,8 @@ export function Translator() {
           </div>
         )}
 
-        <StreamRenderer html={html} loading={loading} error={error} />
+        <StreamRenderer html={html} loading={loading} error={error} onClear={handleClearTranslation} />
       </section>
-
-      <HistoryPanel entries={history} onLoad={handleLoadHistory} onRemove={handleRemoveHistory} />
     </div>
   );
 }

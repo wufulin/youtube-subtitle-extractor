@@ -15,13 +15,13 @@ export function buildPrompt(subtitles: Subtitle[]): string {
 Rules:
 1. Identify different speakers from context. Label them with inferred identities or Speaker A / B / C.
 2. Translation must be natural, idiomatic Chinese — no translationese.
-3. Output raw HTML fragments directly (NO markdown code fences), using these classes:
-   - <div class="article-summary">Summary text here</div> (one opening summary paragraph)
+3. Output raw HTML fragments directly (NO markdown code fences), using these classes only:
    - <div class="dialogue-turn">
        <span class="speaker-label">Speaker Name</span>
        <span class="turn-time">00:00</span>
        <p class="turn-text">Translated content</p>
      </div>
+   Do not output article-summary or any wrapper before the first dialogue-turn.
 4. Merge fragmented consecutive subtitle lines into coherent natural paragraphs.
 5. Preserve original timestamps in each dialogue-turn.
 

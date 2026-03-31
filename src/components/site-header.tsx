@@ -43,7 +43,7 @@ export function SiteHeader() {
             onClick={() => scrollToId('translator')}
             className="text-muted-foreground hover:text-foreground rounded-lg px-3 py-2 text-sm font-medium transition-colors"
           >
-            翻译工具
+            翻译
           </button>
           <button
             type="button"
@@ -93,7 +93,7 @@ export function SiteHeader() {
           onClick={() => scrollToId('translator')}
           className="text-muted-foreground hover:text-foreground rounded-lg px-4 py-1.5 text-sm font-medium"
         >
-          翻译工具
+          翻译
         </button>
         <button
           type="button"

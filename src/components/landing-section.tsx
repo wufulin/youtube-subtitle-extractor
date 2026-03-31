@@ -38,7 +38,7 @@ export function LandingSection() {
           className="border-border/60 bg-secondary/80 mb-6 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium sm:mb-8 sm:gap-2 sm:px-4 sm:py-1.5 sm:text-sm"
         >
           <Play className="text-primary size-3.5 sm:size-4" aria-hidden />
-          智能字幕翻译工具
+          智能字幕翻译
         </Badge>
 
         <h1 className="gradient-text text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
