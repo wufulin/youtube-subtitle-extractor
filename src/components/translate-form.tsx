@@ -1,38 +1,45 @@
 'use client';
 
-import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
 interface TranslateFormProps {
+  url: string;
+  onUrlChange: (url: string) => void;
   onSubmit: (url: string) => void;
   loading: boolean;
+  disabled?: boolean;
 }
 
-export function TranslateForm({ onSubmit, loading }: TranslateFormProps) {
-  const [url, setUrl] = useState('');
-
+export function TranslateForm({
+  url,
+  onUrlChange,
+  onSubmit,
+  loading,
+  disabled,
+}: TranslateFormProps) {
   const handleSubmit = () => {
     const trimmed = url.trim();
     if (trimmed) onSubmit(trimmed);
   };
 
   return (
-    <div className="mx-auto flex max-w-2xl gap-3">
+    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-stretch sm:gap-3">
       <Input
-        className="border-border/50 bg-muted/50 h-12 rounded-full px-5 text-base shadow-sm backdrop-blur focus-visible:ring-purple-500/30"
-        placeholder="Paste YouTube video URL here..."
+        className="input-modern h-12 rounded-xl border-border/60 bg-background/80 text-base shadow-sm backdrop-blur sm:min-h-12 sm:flex-1"
+        placeholder="在此粘贴 YouTube 视频链接…"
         value={url}
-        onChange={(e) => setUrl(e.target.value)}
+        onChange={(e) => onUrlChange(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-        disabled={loading}
+        disabled={loading || disabled}
       />
       <Button
-        className="h-12 shrink-0 rounded-full bg-gradient-to-r from-purple-600 to-blue-500 px-8 text-base font-semibold text-white shadow-md transition-all hover:shadow-lg hover:shadow-purple-500/25 disabled:opacity-50"
+        type="button"
+        className="btn-gradient h-12 shrink-0 rounded-xl px-6 text-base font-semibold shadow-md disabled:opacity-50 sm:px-8"
         onClick={handleSubmit}
-        disabled={loading || !url.trim()}
+        disabled={loading || disabled || !url.trim()}
       >
-        {loading ? 'Translating...' : 'Generate Article'}
+        {loading ? '翻译中…' : '生成译文'}
       </Button>
     </div>
   );

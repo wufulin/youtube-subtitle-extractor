@@ -29,6 +29,6 @@
 
 ### Gotchas
 
-- Primary deploy path is **Cloudflare Workers** (`open-next.config.ts`, `wrangler.jsonc`, `preview` / `deploy` scripts). See `README.md` for env and scripts.
+- Primary deploy path is **Cloudflare Workers** (`open-next.config.ts`, `wrangler.toml`, `preview` / `deploy` scripts). See `README.md` for env and scripts.
 - Captions use unofficial InnerTube (`youtubei.js`); upstream YouTube changes can break fetching.
 - Streamed article HTML is written with `innerHTML` in `stream-renderer.tsx`; sanitize or change rendering if untrusted output matters.

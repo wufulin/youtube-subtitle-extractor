@@ -1,0 +1,29 @@
+# Cloudflare Workers config (OpenNext). See https://developers.cloudflare.com/workers/wrangler/configuration/
+name = "youtube-subtitle-extractor"
+main = ".open-next/worker.js"
+compatibility_date = "2026-03-20"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+# Run fetch handlers near GCP us-west1 (low latency to backends in that region).
+# Workers still execute on Cloudflare’s network, not inside GCP.
+# See https://developers.cloudflare.com/workers/configuration/placement/
+[placement]
+region = "gcp:us-west1"
+
+[alias]
+"node:sqlite" = "./cf-shims/node-sqlite.mjs"
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[[services]]
+binding = "WORKER_SELF_REFERENCE"
+service = "youtube-subtitle-extractor"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "youtube-subtitle"
+database_id = "81c1ef94-3df1-494c-80eb-23d642ba3809"
+migrations_dir = "migrations"

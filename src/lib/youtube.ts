@@ -65,22 +65,31 @@ function parseCaptionXml(xml: string): Subtitle[] {
   return results;
 }
 
+export interface ExtractSubtitlesResult {
+  subtitles: Subtitle[];
+  /** Video title from player metadata, when available */
+  title?: string;
+}
+
 export async function extractSubtitles(
   videoId: string,
   lang = 'en',
-): Promise<Subtitle[]> {
+): Promise<ExtractSubtitlesResult> {
   const yt = await getInnertube();
   const info = await yt.getBasicInfo(videoId);
 
+  const title =
+    typeof info.basic_info?.title === 'string' ? info.basic_info.title : undefined;
+
   const tracks = info.captions?.caption_tracks;
-  if (!tracks?.length) return [];
+  if (!tracks?.length) return { subtitles: [], title };
 
   const track =
     tracks.find((t) => t.language_code === lang && t.kind !== 'asr') ??
     tracks.find((t) => t.language_code === lang) ??
     tracks[0];
 
-  if (!track?.base_url) return [];
+  if (!track?.base_url) return { subtitles: [], title };
 
   const res = await fetch(track.base_url);
 
@@ -88,5 +97,8 @@ export async function extractSubtitles(
     throw new Error(`Failed to fetch captions: ${res.status}`);
   }
 
-  return parseCaptionXml(await res.text());
+  return {
+    subtitles: parseCaptionXml(await res.text()),
+    title,
+  };
 }

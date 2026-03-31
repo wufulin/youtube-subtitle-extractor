@@ -51,7 +51,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Deploy (Cloudflare Workers)
 
-Production is intended to run on **Cloudflare Workers** using [**OpenNext**](https://opennext.js.org/cloudflare) and [`wrangler.jsonc`](wrangler.jsonc):
+Production is intended to run on **Cloudflare Workers** using [**OpenNext**](https://opennext.js.org/cloudflare) and [`wrangler.toml`](wrangler.toml):
 
 1. Set `GEMINI_API_KEY` as a Wrangler secret (see above).
 2. Run `npm run deploy` (or `upload` / `preview` as needed).
@@ -60,11 +60,36 @@ Production is intended to run on **Cloudflare Workers** using [**OpenNext**](htt
 
 You can still host with **`npm run build`** + **`npm run start`** on any Node platform if you prefer.
 
+### D1 (subtitle storage)
+
+[`wrangler.toml`](wrangler.toml) binds the D1 database as **`DB`** (`database_name`: `youtube-subtitle`). After pulling the repo, apply migrations so the `subtitles` table exists:
+
+```bash
+# Local D1 (Wrangler / preview)
+npx wrangler d1 migrations apply youtube-subtitle --local
+
+# Remote D1 (production database in the Cloudflare dashboard)
+npx wrangler d1 migrations apply youtube-subtitle --remote
+```
+
+Migration SQL lives under [`migrations/`](migrations/).
+
+- **`npm run dev`** (plain Next.js) does **not** attach Worker bindings; subtitle writes and the management APIs return **503** (“D1 database not available”). Use **`npm run preview`** or deploy to Workers to exercise D1.
+- **POST `/api/translate`** upserts the fetched English cues into D1 (failures are logged only; translation still streams).
+- **GET `/api/subtitles`** — `limit` / `offset` query params; JSON list with `total`.
+- **GET `/api/subtitles/[videoId]`** — full cue JSON for one video.
+- **DELETE `/api/subtitles/[videoId]`** — remove one row.
+
+These JSON routes are **unauthenticated**. Anyone who can reach your deployment can list or delete stored subtitles; add auth (e.g. bearer secret or Cloudflare Access) if the app is public.
+
 ## Project layout
 
 - `src/app/page.tsx` — Home (hero + translator)
-- `src/app/api/translate/route.ts` — POST `{ "url": "<youtube-url>" }` → subtitle fetch → Gemini stream
+- `src/app/api/translate/route.ts` — POST `{ "url": "<youtube-url>" }` → subtitle fetch → D1 upsert → Gemini stream
+- `src/app/api/subtitles/route.ts` — GET list (D1)
+- `src/app/api/subtitles/[videoId]/route.ts` — GET / DELETE by `videoId` (D1)
 - `src/lib/youtube.ts` — Video ID + captions (`youtubei.js` `/cf-worker` entry)
+- `src/lib/d1-subtitles.ts` — D1 helpers (`getCloudflareContext` from `@opennextjs/cloudflare`)
 - `src/lib/prompt.ts`, `src/lib/gemini.ts` — Prompt + streaming Gemini client
 
 ## Git commits

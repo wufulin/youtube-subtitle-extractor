@@ -1,11 +1,15 @@
-import { HeroSection } from '@/components/hero-section';
+import { SiteHeader } from '@/components/site-header';
+import { LandingSection } from '@/components/landing-section';
 import { Translator } from '@/components/translator';
 
 export default function Home() {
   return (
-    <main className="mx-auto max-w-4xl px-4 pb-20">
-      <HeroSection />
-      <Translator />
-    </main>
+    <>
+      <SiteHeader />
+      <main className="container-yt mx-auto flex min-w-0 flex-1 flex-col pb-16 sm:pb-20">
+        <LandingSection />
+        <Translator />
+      </main>
+    </>
   );
 }

@@ -16,9 +16,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'YouTube Subtitle Translator',
+  title: 'YouTube 字幕翻译助手',
   description:
-    'Stream-translate YouTube English subtitles into elegant Chinese dialogue articles powered by Gemini AI.',
+    '将 YouTube 英文字幕流式翻译为中文对话文章，支持暂停与恢复、本地草稿、历史记录与 TXT/SRT 导出。',
 };
 
 export default function RootLayout({
