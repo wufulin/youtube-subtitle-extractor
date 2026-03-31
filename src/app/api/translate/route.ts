@@ -3,6 +3,12 @@ import { buildPrompt } from '@/lib/prompt';
 import { streamTranslate } from '@/lib/gemini';
 import { getD1Database, getCachedArticleHtml, upsertSubtitles } from '@/lib/d1-subtitles';
 
+const TRANSLATION_TEXT_HEADERS = {
+  'Content-Type': 'text/plain; charset=utf-8',
+  'Cache-Control': 'no-cache, no-store',
+  'X-Content-Type-Options': 'nosniff',
+} as const;
+
 function wrapTranslationStreamWithD1(
   source: ReadableStream<Uint8Array>,
   opts: {
@@ -81,12 +87,7 @@ export async function POST(request: Request) {
       const cached = await getCachedArticleHtml(db, videoId);
       if (cached) {
         return new Response(cached, {
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8',
-            'Cache-Control': 'no-cache, no-store',
-            'X-Content-Type-Options': 'nosniff',
-            'X-Cached-Translation': '1',
-          },
+          headers: { ...TRANSLATION_TEXT_HEADERS, 'X-Cached-Translation': '1' },
         });
       }
     }
@@ -109,13 +110,7 @@ export async function POST(request: Request) {
       subtitles,
     });
 
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache, no-store',
-        'X-Content-Type-Options': 'nosniff',
-      },
-    });
+    return new Response(stream, { headers: { ...TRANSLATION_TEXT_HEADERS } });
   } catch (err) {
     console.error('[/api/translate]', err);
     const message = err instanceof Error ? err.message : 'Internal server error';

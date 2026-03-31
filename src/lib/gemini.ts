@@ -1,9 +1,31 @@
 const GEMINI_ENDPOINT =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:streamGenerateContent';
 
+function geminiTextFromSsePayload(raw: string): string | undefined {
+  const json = raw.trim();
+  if (!json || json === '[DONE]') return undefined;
+  try {
+    const parsed = JSON.parse(json) as {
+      candidates?: { content?: { parts?: { text?: string }[] } }[];
+    };
+    return parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+  } catch {
+    return undefined;
+  }
+}
+
+function enqueueGeminiDelta(
+  rawPayload: string,
+  encoder: TextEncoder,
+  controller: TransformStreamDefaultController<Uint8Array>,
+): void {
+  const text = geminiTextFromSsePayload(rawPayload);
+  if (text) controller.enqueue(encoder.encode(text));
+}
+
 export async function streamTranslate(
   prompt: string,
-  apiKey: string
+  apiKey: string,
 ): Promise<ReadableStream<Uint8Array>> {
   const resp = await fetch(`${GEMINI_ENDPOINT}?alt=sse&key=${apiKey}`, {
     method: 'POST',
@@ -26,42 +48,20 @@ export async function streamTranslate(
   return resp.body.pipeThrough(
     new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
-        const decoded = new TextDecoder().decode(chunk);
-        buffer += decoded;
+        buffer += new TextDecoder().decode(chunk);
         const lines = buffer.split('\n');
         buffer = lines.pop() ?? '';
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
-          const json = line.slice(6).trim();
-          if (!json || json === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(json);
-            const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (content) {
-              controller.enqueue(encoder.encode(content));
-            }
-          } catch {
-            // skip malformed SSE chunks
-          }
+          enqueueGeminiDelta(line.slice(6), encoder, controller);
         }
       },
       flush(controller) {
         if (buffer.startsWith('data: ')) {
-          const json = buffer.slice(6).trim();
-          if (json && json !== '[DONE]') {
-            try {
-              const parsed = JSON.parse(json);
-              const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (content) {
-                controller.enqueue(encoder.encode(content));
-              }
-            } catch {
-              // skip
-            }
-          }
+          enqueueGeminiDelta(buffer.slice(6), encoder, controller);
         }
       },
-    })
+    }),
   );
 }
